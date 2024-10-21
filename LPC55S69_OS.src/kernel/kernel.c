@@ -35,13 +35,48 @@ int sys_add(int a, int b)
  */
 int32_t svc_dispatch(uint32_t n, uint32_t args[])
 {
-	int32_t result=-1;
+    int32_t result = -1;
+    void *buffer;
 
     switch(n) {
-      case 0:
-          result = sys_add((int)args[0], (int)args[1]);
-          break;
-      /* A COMPLETER */
+        case 0:  // Test function
+            result = sys_add((int)args[0], (int)args[1]);
+            break;
+        case 1:  // os_alloc (malloc)
+            buffer = malloc((size_t)args[0]);
+            result = (buffer == NULL) ? -1 : (int32_t)buffer;
+            break;
+        case 2:  // os_free
+            free((void *)args[0]);
+            result = 0;
+            break;
+        case 3:  // os_start
+            result = sys_os_start();
+            break;
+        case 4:  // task_new
+            result = sys_task_new((TaskCode)args[0], args[1]);
+            break;
+        case 5:  // task_id
+            result = sys_task_id();
+            break;
+        case 6:  // task_wait
+            result = sys_task_wait(args[0]);
+            break;
+        case 7:  // task_kill
+            result = sys_task_kill();
+            break;
+        case 8:  // sem_new
+            result = (int32_t)sys_sem_new(args[0]);
+            break;
+        case 9:  // sem_p
+            result = sys_sem_p((Semaphore*)args[0]);
+            break;
+        case 10: // sem_v
+            result = sys_sem_v((Semaphore*)args[0]);
+            break;
+        default:
+            result = -1;
+            break;
     }
     return result;
 }

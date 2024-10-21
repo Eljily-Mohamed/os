@@ -16,14 +16,14 @@ int test_add(int a, int b)
  *****************************************************************************/
 void* os_alloc(unsigned int req)
 {
-	/* A COMPLETER */
-	
-	return NULL;
+	void* ptr;
+	__ASM volatile ("svc 1\n\tmov %0, r0" : "=r" (ptr));
+	return ptr;
 }
 
 void os_free(void *ptr)
 {
-	/* A COMPLETER */
+	__ASM volatile ("svc 2");
 }
 
 /*****************************************************************************
@@ -35,7 +35,9 @@ void os_free(void *ptr)
  */
 void os_start()
 {
+
 	/* A COMPLETER */
+	__ASM volatile ("svc 3");
 }
 
 
@@ -52,8 +54,9 @@ void os_start()
 int32_t task_new(TaskCode func, uint32_t stacksize)
 {
 	/* A COMPLETER */
-
-    return 0;
+	int32_t result;
+    __ASM volatile ("svc 4\n\tmov %0, r0" : "=r" (result));
+    return result;
 }
 
 /* task_id
@@ -61,9 +64,9 @@ int32_t task_new(TaskCode func, uint32_t stacksize)
  */
 uint32_t task_id()
 {
-	/* A COMPLETER */
-	
-	return 0;
+	int32_t result;
+	__ASM volatile ("svc 5\n\tmov %0, r0" : "=r" (result));
+	return result;
 }
 
 /* task_kill
@@ -71,7 +74,7 @@ uint32_t task_id()
  */
 void task_kill()
 {
-	/* A COMPLETER */
+	__ASM volatile ("svc 7");
 }
 
 /* task_yield
@@ -79,7 +82,6 @@ void task_kill()
  */
 void task_yield()
 {
-	/* A COMPLETER */
 }
 
 /* task_wait
@@ -87,7 +89,7 @@ void task_yield()
  */
 void  task_wait(uint32_t ms)
 {
-	/* A COMPLETER */
+	__ASM volatile ("svc 6");
 }
 
 /*****************************************************************************
@@ -100,9 +102,9 @@ void  task_wait(uint32_t ms)
  */
 Semaphore * sem_new(int32_t init)
 {
-	/* A COMPLETER */
-
-    return NULL;
+	Semaphore * sm;
+	__ASM volatile ("svc 4\n\tmov %0, r0" : "=r" (sm));
+	return sm;
 }
 
 /* sem_p
@@ -110,7 +112,7 @@ Semaphore * sem_new(int32_t init)
  */
 void sem_p(Semaphore * sem)
 {
-	/* A COMPLETER */
+	__ASM volatile ("svc 9");
 }
 
 /* sem_v
@@ -118,5 +120,5 @@ void sem_p(Semaphore * sem)
  */
 void sem_v(Semaphore * sem)
 {
-	/* A COMPLETER */
+	__ASM volatile ("svc 10");
 }

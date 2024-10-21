@@ -1,9 +1,10 @@
 #include <stdio.h>
 #include "board.h"
+#include <string.h>
 
 #include "oslib.h"
 
-#define MAIN_TEST
+#define MAIN_EX1
 
 /*********************************************************************/
 #ifdef MAIN_TEST
@@ -12,7 +13,14 @@ int res;
 int main()
 {
 	res = test_add(8,7);
-
+	void* buffer = os_alloc(4);
+    if (buffer == NULL)
+    {
+		printf("Échec de l'allocation mémoire.\n");
+		return -1;
+    }
+    printf("Taille du buffer : %lu octets\n", sizeof(buffer));
+    os_free(buffer);
 	return 0;
 }
 #endif
