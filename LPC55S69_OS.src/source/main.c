@@ -4,7 +4,7 @@
 
 #include "oslib.h"
 
-#define MAIN_EX1
+#define MAIN_EX11
 
 /*********************************************************************/
 #ifdef MAIN_TEST
@@ -64,7 +64,8 @@ int main()
     task_new(code1, 512);   // tache 1
     task_new(code2, 512);   // tache 2
     task_new(code3, 512);   // tache 3
-
+    int id_run = task_id();
+    printf("tache %d\r\n",(int)id_run);
     os_start();
 
     return 0;
@@ -210,7 +211,7 @@ void tache1()
 
     while (1) {
     	state=!state;
-        leds(state<<2);			// toggle led
+        leds(state<<1);			// toggle led
         task_wait(200);
     }
 }
@@ -477,6 +478,41 @@ int main()
 #endif
 /*********************************************************************/
 #ifdef MAIN_EX11
-/* ... */
+
+void tache1()
+{
+    int serial = open("/dev/serial", O_RDWR);
+    if (serial < 0) {
+        perror("Failed to open /dev/serial");
+        return;
+    }
+
+    char buff[255];
+    char* strDebug = "Ceci est un message\n";
+    write(serial, strDebug, strlen(strDebug));
+
+    while (1)
+    {
+        if (read(serial, buff, 1) > 0)
+        {
+            write(serial, buff, 1);
+        }
+    }
+    close(serial);
+}
+
+void idle()
+{
+    while (1){}
+}
+
+int main()
+{
+    task_new(tache1, 1024);
+    task_new(idle, 0);
+    os_start();
+    return 0;
+}
+
 #endif
 /*********************************************************************/

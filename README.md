@@ -1,15 +1,16 @@
-# os
-code user deja fait dans main.c on va complete que les appeles syteme 
+Le code de l'utilisateur est déjà implémenté dans main.c, nous allons seulement compléter les appels système.
 
--dans oslib appelle system test_add faire addition sa main test 
- est avec une nomber d'appelle systeme 
+    Dans oslib, l'appel système test_add effectuera une addition ; main_test contient plusieurs appels système.
 
- -svc qui contienr handleur pour gestion
- -dans kerenl on va implemente creation des taches les symaphore donc code dans kernel s'excute en mode system mode handleur 
+    svc contient un gestionnaire pour la gestion des interruptions.
 
- -code dans device s'excute en mode user 
- -test_add appelle systeme(value1,value2)
- -ipsr : no fault : no mode handler : no faultt = mode user 
- -fault 0x11 : mode systeme 
+    Dans kernel, nous allons implémenter la création des tâches et des sémaphores. Le code dans kernel s'exécute en mode System Handler.
 
+    Le code dans device s'exécute en mode utilisateur.
 
+    test_add effectue un appel système avec les paramètres (value1, value2).
+
+    Pour ipsr :
+        Pas de faute : mode utilisateur.
+        Mode handler sans faute : mode utilisateur.
+        Faute (0x11) : mode système.

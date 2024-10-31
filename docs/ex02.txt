@@ -1,0 +1,18 @@
+- **Chargement de l'adresse de la pile** pour la tâche à exécuter (`tsk_running`).
+- **Restauration des registres** à partir de la pile.
+- **Mise à jour de la pile de la tâche actuelle** (`psp`).
+- **Mise à jour des limites de pile** (`psplim`).
+- **Restauration du registre de contrôle**.
+
+### Résumé des Actions sur tsk_prev et tsk_running
+
+- **`tsk_prev`** :
+- Il contient un pointeur vers la tâche qui était en cours d'exécution avant l'appel de `PendSV_Handler`.
+- Son rôle principal est de permettre la sauvegarde du contexte de la tâche précédente avant le changement de contexte.
+
+- **`tsk_running`** :
+- Il pointe vers la tâche actuellement en cours d'exécution.
+- Il est mis à jour pour indiquer quelle tâche doit être restaurée après que le contexte de la tâche précédente ait été sauvegardé.
+
+Cette routine `PendSV_Handler` est cruciale pour permettre la commutation efficace entre les tâches dans un RTOS, garantissant que les états de chaque tâche sont correctement sauvegardés et restaurés.
+

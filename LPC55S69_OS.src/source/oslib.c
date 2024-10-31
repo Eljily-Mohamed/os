@@ -16,14 +16,14 @@ int test_add(int a, int b)
  *****************************************************************************/
 void* os_alloc(unsigned int req)
 {
-	void* ptr;
-	__ASM volatile ("svc 1\n\tmov %0, r0" : "=r" (ptr));
-	return ptr;
+	void* val;
+	__ASM volatile ("svc 1\n\tmov %0, r0" : "=r" (val));
+	return val;
 }
 
 void os_free(void *ptr)
 {
-	__ASM volatile ("svc 2");
+	__ASM volatile ("svc 2\n");
 }
 
 /*****************************************************************************
@@ -35,9 +35,7 @@ void os_free(void *ptr)
  */
 void os_start()
 {
-
-	/* A COMPLETER */
-	__ASM volatile ("svc 3");
+	__ASM volatile ("svc 3\n");
 }
 
 
@@ -53,10 +51,9 @@ void os_start()
  */
 int32_t task_new(TaskCode func, uint32_t stacksize)
 {
-	/* A COMPLETER */
-	int32_t result;
-    __ASM volatile ("svc 4\n\tmov %0, r0" : "=r" (result));
-    return result;
+	int32_t val;
+	__ASM volatile ("svc 4\n\tmov %0, r0" : "=r" (val));
+    return val;
 }
 
 /* task_id
@@ -64,9 +61,9 @@ int32_t task_new(TaskCode func, uint32_t stacksize)
  */
 uint32_t task_id()
 {
-	int32_t result;
-	__ASM volatile ("svc 5\n\tmov %0, r0" : "=r" (result));
-	return result;
+	int32_t val;
+	__ASM volatile ("svc 5\n\tmov %0, r0" : "=r" (val));
+    return val;
 }
 
 /* task_kill
@@ -74,7 +71,7 @@ uint32_t task_id()
  */
 void task_kill()
 {
-	__ASM volatile ("svc 7");
+	__ASM volatile ("svc 7\n");
 }
 
 /* task_yield
@@ -82,6 +79,7 @@ void task_kill()
  */
 void task_yield()
 {
+	/* A COMPLETER */
 }
 
 /* task_wait
@@ -89,7 +87,9 @@ void task_yield()
  */
 void  task_wait(uint32_t ms)
 {
-	__ASM volatile ("svc 6");
+	int32_t val;
+	__ASM volatile ("svc 6\n\tmov %0, r0" : "=r" (val));
+    return val;
 }
 
 /*****************************************************************************
@@ -102,9 +102,9 @@ void  task_wait(uint32_t ms)
  */
 Semaphore * sem_new(int32_t init)
 {
-	Semaphore * sm;
-	__ASM volatile ("svc 4\n\tmov %0, r0" : "=r" (sm));
-	return sm;
+	int32_t val;
+	__ASM volatile ("svc 8\n\tmov %0, r0" : "=r" (val));
+    return val;
 }
 
 /* sem_p
@@ -112,7 +112,7 @@ Semaphore * sem_new(int32_t init)
  */
 void sem_p(Semaphore * sem)
 {
-	__ASM volatile ("svc 9");
+	__ASM volatile ("svc 9\n");
 }
 
 /* sem_v
@@ -120,5 +120,5 @@ void sem_p(Semaphore * sem)
  */
 void sem_v(Semaphore * sem)
 {
-	__ASM volatile ("svc 10");
+	__ASM volatile ("svc 10\n");
 }

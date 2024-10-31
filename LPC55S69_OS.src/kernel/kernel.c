@@ -88,7 +88,7 @@ void sys_switch_ctx()
 /*****************************************************************************
  * Round robin algorithm
  *****************************************************************************/
-#define SYS_TICK  10	// system tick in ms
+#define SYS_TICK  689 // system tick in ms
 
 uint32_t sys_tick_cnt=0;
 
@@ -97,9 +97,34 @@ uint32_t sys_tick_cnt=0;
  */
 void sys_tick_cb()
 {
-	/* A COMPLETER */
+//	Task* prev = tsk_running;
+	tsk_running->status = TASK_SLEEPING;
+	tsk_prev = tsk_running;
+	tsk_running = tsk_prev->next;
+	tsk_running->status = TASK_RUNNING;
+	sys_switch_ctx();
 
-//    list_display(tsk_running);
+	//delay management
+
+	int size = list_size(tsk_sleeping);
+	for(int i = 0; i < size; ++i)
+	{
+		tsk_sleeping->delay -= SYS_TICK;
+		if (tsk_sleeping->delay <= 0)//if timeout
+		{
+			tsk_sleeping->delay = 0;//reset delay
+
+			Task* tskDelay;
+			//get next sleeping task and store current to tskDelay
+			tsk_sleeping = list_remove_head(tsk_sleeping,&tskDelay);
+			tskDelay->status = TASK_READY;//set current task to ready
+			tsk_running = list_insert_tail(tsk_running,tskDelay);//add it to running tasks
+		}
+		else//no timeout, just skip it
+			tsk_sleeping = tsk_sleeping->next;
+
+		sys_switch_ctx();
+	}
 }
 
 void SysTick_Handler(void)
@@ -121,8 +146,8 @@ void SysTick_Handler(void)
  */
 int32_t sys_os_start()
 {
-	/* A COMPLETER */
-
+	tsk_running->status = TASK_RUNNING;
+	sys_switch_ctx();
     // Reset BASEPRI
     __set_BASEPRI(0);
 
@@ -169,9 +194,42 @@ int32_t sys_task_new(TaskCode func, uint32_t stacksize)
 	// get a stack with size multiple of 8 bytes
 	uint32_t size = stacksize>96 ? 8*(((stacksize-1)/8)+1) : 96;
 	
-	/* A COMPLETER */
+	Task *new_tsk = (Task *)malloc(sizeof(Task) + size);
+	if (new_tsk == NULL)
+	    return -1;
 
-    return -1;
+    // Initialiser le descripteur de tâche
+    new_tsk->id = id++;
+    new_tsk->status = TASK_READY;
+    new_tsk->delay = 0;
+
+    // Initialiser la pile
+    //new_task->splim = (uint32_t *)((uint8_t *)new_task + sizeof(Task));
+    new_tsk->splim = (uint32_t*)(new_tsk+1);
+    new_tsk->sp = new_tsk->splim + (size / sizeof(uint32_t));
+
+    // R0-R12
+    // CTRL
+    // EXC_RET
+    // LR (return addr)
+    // PC (task func addr)
+    // xPSR
+
+    new_tsk->sp -= 18; // Reserve context space
+
+    new_tsk->sp[0] = (0x0) | (0x1 << 0); // CTRL = unprivileged
+    new_tsk->sp[1] = 0xFFFFFFFD; // EXC_RET = thread, psp
+    new_tsk->sp[15] = (uint32_t)task_kill; // LR = return address
+    new_tsk->sp[16] = (uint32_t)func; // PC = task function address
+    new_tsk->sp[17] = 1 << 24; // xPSR = 1 << 24
+
+    tsk_running = list_insert_tail(tsk_running, new_tsk);
+    if(tsk_running == NULL)
+    {
+    	return -1;
+    }
+    //list_display(tsk_running);
+    return new_tsk->id;
 }
 
 /* sys_task_kill
@@ -179,9 +237,22 @@ int32_t sys_task_new(TaskCode func, uint32_t stacksize)
  */
 int32_t sys_task_kill()
 {
-	/* A COMPLETER */
+    Task *tskToKill;
 
-	return -1;
+    tsk_running = list_remove_head(tsk_running, &tskToKill);
+
+    // Check if there was a task to kill
+    if (tskToKill == NULL)
+        return -1;
+    free(tskToKill);
+
+    // Check if the task list is now empty
+    if (tsk_running != NULL)
+        tsk_running->status = TASK_RUNNING;
+
+    // Switch context
+    sys_switch_ctx();
+	return 0;
 }
 
 /* sys_task_id
@@ -189,8 +260,8 @@ int32_t sys_task_kill()
  */
 int32_t sys_task_id()
 {
-	/* A COMPLETER */
-
+	if(tsk_running != NULL)
+		return tsk_running->id;
     return -1;
 }
 
@@ -210,7 +281,12 @@ int32_t sys_task_yield()
 int32_t sys_task_wait(uint32_t ms)
 {
 	/* A COMPLETER */
-
+	tsk_running = list_remove_head(tsk_running, &tsk_prev);
+	tsk_sleeping = list_insert_tail(tsk_sleeping, tsk_prev);
+	tsk_prev->delay = ms;
+	tsk_prev->status = TASK_WAITING;
+	tsk_running->status = TASK_RUNNING;
+	sys_switch_ctx();
     return -1;
 }
 
@@ -226,8 +302,12 @@ int32_t sys_task_wait(uint32_t ms)
 Semaphore * sys_sem_new(int32_t init)
 {
 	/* A COMPLETER */
-
-    return NULL;
+	Semaphore *new_sem = (Semaphore *)malloc(sizeof(Semaphore));
+		if (new_sem == NULL)
+		    return -1;
+	new_sem->count = init;
+	new_sem->waiting = NULL;
+    return new_sem;
 }
 
 /* sys_sem_p
@@ -236,8 +316,21 @@ Semaphore * sys_sem_new(int32_t init)
 int32_t sys_sem_p(Semaphore * sem)
 {
 	/* A COMPLETER */
-
-	return -1;
+	--sem->count;
+	if(sem->count < 0)
+	{
+		//transférer de la liste tsk_running à la liste waiting
+		Task *task;
+		tsk_running = list_remove_head(tsk_running, &task);
+		sem->waiting = list_insert_tail(sem->waiting, task);
+		sem->waiting->status = TASK_WAITING;
+		tsk_running->status = TASK_RUNNING;
+		//Débloquer la tâche consiste en l’opération dans l’autre sens
+		tsk_prev = task;
+		//réaliser la commutation de contexte associée
+		sys_switch_ctx();
+	}
+	return sem->count;
 }
 
 /* sys_sem_v
@@ -245,7 +338,18 @@ int32_t sys_sem_p(Semaphore * sem)
  */
 int32_t sys_sem_v(Semaphore * sem)
 {
-	/* A COMPLETER */
+	++sem->count;
+	if(sem->waiting != NULL)
+	{
+		Task* task;
+		sem->waiting = list_remove_head(sem->waiting, &task);
+		tsk_prev = tsk_running;
 
-	return -1;
+		tsk_running = list_insert_head(tsk_running, task);
+		task->status = TASK_RUNNING;
+		tsk_prev->status = TASK_READY;
+
+		sys_switch_ctx();
+	}
+	return sem->count;
 }
