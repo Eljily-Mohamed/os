@@ -353,9 +353,9 @@ static int dev_init_ser(Device *dev)
 static int dev_open_ser(FileObject *f)
 {
 	sem_p(f->dev->mutex);
-	    if (f->dev->refcnt || (f->flags & (O_WRITE|O_NONBLOCK|O_APPEND|O_SHLOCK|O_EXLOCK|O_ASYNC|O_SYNC|O_CREAT|O_TRUNC|O_EXCL)))
+	    if (f->dev->refcnt || (f->flags & (O_NONBLOCK|O_APPEND|O_SHLOCK|O_EXLOCK|O_ASYNC|O_SYNC|O_CREAT|O_TRUNC|O_EXCL)))
 	        goto err;
-	    if (f->flags & O_READ) {
+	    if (f->flags & (O_READ | O_WRITE)) {
 	        f->dev->refcnt++;
 			sem_v(f->dev->mutex);
 	        return 1;

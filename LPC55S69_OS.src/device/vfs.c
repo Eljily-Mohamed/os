@@ -105,12 +105,47 @@ Semaphore *vfs_mutex;
 /* open
  *   returns a file descriptor for path name
  */
-int open(char *path, int flags)
-{
-	/* A COMPLETER */
-	
+int open(char *path, int flags) {
+    const char dev[] = "/dev";
+    const int devSize = sizeof(dev);
+
+    for (int i = 0; i < MAX_OPENED_FDS; i++) {
+        FileObject** f = &opened_fds[i];
+        if (!*f) {
+            *f = malloc(sizeof(FileObject));
+            if (!*f) {
+                return -1;
+            }
+
+            // Initialisation de l'objet fichier
+            (*f)->name = path;
+            (*f)->offset = 0;
+            (*f)->flags = flags;
+
+            // Traitement du cas particulier du répertoire /dev
+            if (memcmp(path, dev, devSize) == 0) { // Si c'est le répertoire dev
+                (*f)->flags |= F_IS_DEVDIR;
+                (*f)->dev = dev_lookup(path); // Recherche du périphérique
+
+                if ((*f)->dev && !(*f)->dev->open(*f)) { // Ouverture du périphérique
+                    free(*f);
+                    return -1;
+                }
+            } else { // Cas d'un périphérique physique
+                (*f)->dev = dev_lookup(path);
+                if (!(*f)->dev || !(*f)->dev->open(*f)) {
+                    free(*f);
+                    return -1;
+                }
+            }
+
+            return i;
+        }
+    }
+
     return -1;
 }
+
 
 /* close
  *   close the file descriptor
@@ -118,9 +153,12 @@ int open(char *path, int flags)
 int close(int fd)
 {
 	/* A COMPLETER */
-
+	opened_fds[fd]->dev->close(opened_fds[fd]);
+	free(opened_fds[fd]);
+	opened_fds[fd] = NULL;
     return -1;
 }
+
 
 /* read
  *   read len bytes from fd to buf, returns actually read bytes
@@ -128,8 +166,7 @@ int close(int fd)
 int read(int fd, void *buf, size_t len)
 {
 	/* A COMPLETER */
-
-    return -1;
+	return opened_fds[fd]->dev->read(opened_fds[fd],buf,len);
 }
 
 /* write
@@ -138,8 +175,7 @@ int read(int fd, void *buf, size_t len)
 int write(int fd, void *buf, size_t len)
 {
 	/* A COMPLETER */
-
-    return -1;
+	return opened_fds[fd]->dev->write(opened_fds[fd],buf,len);
 }
 
 /* ioctl
@@ -148,8 +184,8 @@ int write(int fd, void *buf, size_t len)
 int ioctl(int fd, int op, void** data)
 {
 	/* A COMPLETER */
+	return opened_fds[fd]->dev->ioctl(opened_fds[fd],op,data);
 
-    return -1;
 }
 
 /* lseek
@@ -158,8 +194,8 @@ int ioctl(int fd, int op, void** data)
 int lseek(int fd, unsigned int offset)
 {
 	/* A COMPLETER */
-
-	return -1;	
+	opened_fds[fd]->offset = offset;
+	return offset;
 }
 
 #ifdef _FAT_H_
