@@ -88,7 +88,7 @@ void sys_switch_ctx()
 /*****************************************************************************
  * Round robin algorithm
  *****************************************************************************/
-#define SYS_TICK  689 // system tick in ms
+#define SYS_TICK  10 // system tick in ms pour 1s = 689
 
 uint32_t sys_tick_cnt=0;
 
@@ -103,6 +103,7 @@ void sys_tick_cb()
 	tsk_running = tsk_prev->next;
 	tsk_running->status = TASK_RUNNING;
 	sys_switch_ctx();
+
 
 	//delay management
 
@@ -217,11 +218,11 @@ int32_t sys_task_new(TaskCode func, uint32_t stacksize)
 
     new_tsk->sp -= 18; // Reserve context space
 
-    new_tsk->sp[0] = (0x0) | (0x1 << 0); // CTRL = unprivileged
-    new_tsk->sp[1] = 0xFFFFFFFD; // EXC_RET = thread, psp
+    new_tsk->sp[0] = (0x0) | (0x1 << 0); // CTRL = unprivileged , voir page 8 doc 0
+    new_tsk->sp[1] = 0xFFFFFFFD; // EXC_RET = thread, psp , voir page 14 doc 1
     new_tsk->sp[15] = (uint32_t)task_kill; // LR = return address
     new_tsk->sp[16] = (uint32_t)func; // PC = task function address
-    new_tsk->sp[17] = 1 << 24; // xPSR = 1 << 24
+    new_tsk->sp[17] = 1 << 24; // xPSR = 1 << 24 = 0x01000000 , voir page 7 doc 1
 
     tsk_running = list_insert_tail(tsk_running, new_tsk);
     if(tsk_running == NULL)

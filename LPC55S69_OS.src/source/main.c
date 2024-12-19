@@ -4,7 +4,7 @@
 
 #include "oslib.h"
 
-#define MAIN_EX11
+#define MAIN_EX12
 
 /*********************************************************************/
 #ifdef MAIN_TEST
@@ -19,9 +19,7 @@ int main()
 		printf("Échec de l'allocation mémoire.\n");
 		return -1;
     }
-    printf("Taille du buffer : %lu octets\n", sizeof(buffer));
-    os_free(buffer);
-	return 0;
+   	return 0;
 }
 #endif
 /*********************************************************************/
@@ -100,6 +98,7 @@ int main()
 
 Semaphore* sem=NULL;
 int cpt=0;
+int count;
 
 int sw_user()
 {
@@ -112,8 +111,10 @@ int sw_user()
 void tache1()
 {
     while (1) {
-        sem_p(sem);
-        printf("tache 1 : cpt = %d\r\n",++cpt);
+    			//printf("Token count before sem_p = %d\r\n", sem->count);
+    	        sem_p(sem);
+    	        //printf("Token count after sem_p = %d\r\n", sem->count);
+    	        printf("Tache 1 : cpt = %d\r\n", ++cpt);
     }
 }
 
@@ -211,7 +212,7 @@ void tache1()
 
     while (1) {
     	state=!state;
-        leds(state<<1);			// toggle led
+        leds(state<<2);			// toggle led
         task_wait(200);
     }
 }
@@ -498,7 +499,7 @@ void tache1()
             write(serial, buff, 1);
         }
     }
-    close(serial);
+    //close(serial);
 }
 
 void idle()
@@ -516,3 +517,152 @@ int main()
 
 #endif
 /*********************************************************************/
+
+
+#include "termio.h"
+
+#ifdef MAIN_EX12
+
+void tache1()
+{
+
+	term_init(80,24);
+	char string_char[10];
+    char c;
+    term_printf("hello from termio.c ");
+
+    while (1)
+    {
+    	readline("<>",string_char,9);
+    	term_printf("%s",string_char);
+
+    }
+
+    //close(serial);
+}
+
+void idle()
+{
+    while (1){}
+}
+
+int main()
+{
+    task_new(tache1, 1024);
+    task_new(idle, 0);
+    os_start();
+    return 0;
+}
+
+#endif
+/*********************************************************************/
+
+/*********************************************************************/
+#ifdef MAIN_EX13
+
+void tache1()
+{
+	int serial = open("/dev/serial",O_WRONLY);
+	int afd=open("/dev/accel", O_RDONLY);
+
+
+    char buff[255];
+    char strDebug[] = "Accelerometer Data:\n";
+    write(serial, strDebug, strlen(strDebug));
+
+    int32_t accData[3];
+
+    while (1)
+    {
+        status_t res = read(afd,&accData,sizeof(accData));
+        if (res == sizeof(accData)) {
+            snprintf(buff, sizeof(buff), "X: %d, Y: %d, Z: %d\r\n", accData[0], accData[1], accData[2]);
+            write(serial, buff, strlen(buff));
+        } else {
+            //snprintf(buff, sizeof(buff), "Failed to read accelerometer data\n");
+            //write(serial, buff, strlen(buff));
+        }
+        task_wait(500);
+    }
+
+    //close(serial);
+}
+
+void idle()
+{
+    while (1){}
+}
+
+int main()
+{
+    task_new(tache1, 1024);  // Create task to read accelerometer and send data via UART
+    task_new(idle, 0);  // Idle task
+    os_start();  // Start the OS and execute tasks
+    return 0;
+}
+
+#endif
+
+
+
+#ifdef MAIN_EX14
+
+extern bool is_sd_card_present;
+
+void tache1()
+
+{
+
+  while (!is_sd_card_present) {
+    printf("Waiting for SD card...\n");
+
+    task_wait(100);
+
+  }
+
+  int sd_card_fd = open("/dev/sd", O_RDWR);
+
+  if (sd_card_fd < 0) {
+
+    perror("Failed to open /dev/sd");
+
+    return;
+
+  }
+
+  char write_buffer[] = "This is a test data written to SD card.";
+  char read_buffer[255];
+
+  int bytes_written, bytes_read;
+
+  bytes_written = write(sd_card_fd, write_buffer, strlen(write_buffer));
+  bytes_read = read(sd_card_fd, read_buffer, sizeof(read_buffer));
+  close(sd_card_fd);
+
+}
+
+void idle()
+
+{
+
+  while (1) {
+
+  }
+
+}
+
+int main()
+
+{
+
+  // Initialize pins and peripherals BOARD_
+  // Start tasks
+  task_new(tache1, 2048);
+  task_new(idle, 0);
+  // Start the OS scheduler
+  os_start();
+  return 0;
+
+}
+
+#endif
